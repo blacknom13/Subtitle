@@ -1,8 +1,6 @@
 
 import com.eeeeeric.mpc.hc.api.MediaPlayerClassicHomeCinema;
 
-import java.io.IOException;
-
 public class ClassicPlayerUse{
 
     static MediaPlayerClassicHomeCinema mpc;

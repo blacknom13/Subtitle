@@ -1,11 +1,8 @@
-import com.eeeeeric.mpc.hc.api.MediaPlayerClassicHomeCinema;
-
-import javax.swing.*;
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.io.*;
 import java.util.ArrayList;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class Main {
 

@@ -17,11 +17,11 @@ public class AdvanecedView extends JFrame implements ActionListener, WindowListe
             endadd10ms, endadd100ms, endadd1s, endsub10ms, endsub100ms, endsub1s;
     JTextField startTime, endTime;
     JTextArea subtitle;
-    JPanel timeCtrl;
     final Pattern timeFormat = Pattern.compile("(([01][0-9])|([2][0-3]))(:[0-5][0-9]){2},[0-9]{3}");
 
     int currInd;
     int end;
+    boolean hasNextSubtitle;
     ArrayList<String> subtitles;
     ArrayList<String> timing;
 
@@ -263,6 +263,9 @@ public class AdvanecedView extends JFrame implements ActionListener, WindowListe
     private void saveSubtitle() {
         String text = subtitle.getText();
         String time;
+        if (subtitle.getText().isEmpty()){
+            removeEmptySubtitle(currInd);
+        }
         if (timeFormat.matcher(startTime.getText()).matches() && timeFormat.matcher(endTime.getText()).matches())
             time = startTime.getText() + " --> " + endTime.getText();
         else
@@ -271,12 +274,10 @@ public class AdvanecedView extends JFrame implements ActionListener, WindowListe
         timing.set(currInd, time);
     }
 
-    private void removeEmptySubtitles(){
-        for (int i=0;i<subtitles.size();i++){
-            if (subtitles.get(i).isEmpty()){
-                subtitles.remove(i);
-                timing.remove(i);
-            }
+    private void removeEmptySubtitle(int i){
+        if (subtitles.get(i).isEmpty()){
+            subtitles.remove(i);
+            timing.remove(i);
         }
     }
 
@@ -305,7 +306,9 @@ public class AdvanecedView extends JFrame implements ActionListener, WindowListe
                     JOptionPane.showConfirmDialog(null, "No more previous subtitles to load!"
                             , "", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
                     currInd = 0;
+                    hasNextSubtitle=false;
                 }
+                hasNextSubtitle=true;
                 break;
             case "start":
             case "end":
@@ -376,7 +379,6 @@ public class AdvanecedView extends JFrame implements ActionListener, WindowListe
 
     @Override
     public void windowClosing(WindowEvent windowEvent) {
-        removeEmptySubtitles();
         Main.setClosed();
     }
 
@@ -414,7 +416,8 @@ public class AdvanecedView extends JFrame implements ActionListener, WindowListe
     @Override
     public void removeUpdate(DocumentEvent documentEvent) {
         if (documentEvent.getDocument().getLength()==0) {
-            nextSubtitle.setEnabled(false);
+            if (!hasNextSubtitle)
+                nextSubtitle.setEnabled(false);
             saveChanges.setEnabled(false);
         }
     }
