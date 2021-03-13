@@ -1,18 +1,14 @@
-import com.eeeeeric.mpc.hc.api.MediaPlayerClassicHomeCinema;
-import com.eeeeeric.mpc.hc.api.WMCommand;
-
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
 
 public class AdvanecedView extends JFrame implements ActionListener, WindowListener, DocumentListener {
 
-    JButton captureStartTime, captureEndTime, nextSubtitle, prevSubtitle, saveChanges,
+    JButton captureStartTime, captureEndTime, nextSubtitle, divideSubtitle, prevSubtitle, saveChanges,
             stadd10ms, stadd100ms, stadd1s, stsub10ms, stsub100ms, stsub1s,
             endadd10ms, endadd100ms, endadd1s, endsub10ms, endsub100ms, endsub1s;
     JTextField startTime, endTime;
@@ -209,6 +205,16 @@ public class AdvanecedView extends JFrame implements ActionListener, WindowListe
         con.gridy = 7;
         this.add(nextSubtitle, con);
 
+        divideSubtitle = new JButton("Divide subtitle");
+        divideSubtitle.addActionListener(this);
+        divideSubtitle.setActionCommand("div");
+        con.fill = GridBagConstraints.HORIZONTAL;
+        con.gridwidth = 1;
+        con.weightx = 0.4;
+        con.gridx = 3;
+        con.gridy = 7;
+        this.add(divideSubtitle, con);
+
         saveChanges = new JButton("Save Changes");
         saveChanges.addActionListener(this);
         saveChanges.setActionCommand("save");
@@ -244,52 +250,68 @@ public class AdvanecedView extends JFrame implements ActionListener, WindowListe
         time = timing.get(currInd).split(" ");
         startTime.setText(time.length < 3 ? "" : time[0]);
         endTime.setText(time.length < 3 ? "" : time[2]);
-        if(!(time.length<3)){
-            try {
-                ClassicPlayerUse.mpc.execute(WMCommand.SEEK,new MediaPlayerClassicHomeCinema.KeyValuePair("position",time[0]));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+        if (!(time.length < 3)) {
+            ClassicPlayerUse.seekToTime(time[0]);
         }
     }
 
-    private void createSubtitle(){
-        subtitles.add("");
-        timing.add("");
+    private void createSubtitle(int ind) {
+        if (ind>=subtitles.size()) {
+            subtitles.add("");
+            timing.add("");
+        }else{
+            subtitles.add(ind,"");
+            timing.add(ind,"");
+        }
         nextSubtitle.setEnabled(false);
         saveChanges.setEnabled(false);
+        divideSubtitle.setEnabled(false);
     }
 
-    private void saveSubtitle() {
+    protected void saveSubtitle(String sub, String stime, String etime, int ind) {
         String text = subtitle.getText();
         String time;
-        if (subtitle.getText().isEmpty()){
-            removeEmptySubtitle(currInd);
+        if (sub.isEmpty()) {
+            removeEmptySubtitle(ind);
         }
-        if (timeFormat.matcher(startTime.getText()).matches() && timeFormat.matcher(endTime.getText()).matches())
-            time = startTime.getText() + " --> " + endTime.getText();
+        if (timeFormat.matcher(stime).matches() && timeFormat.matcher(etime).matches())
+            time = stime + " --> " + etime;
         else
             time = "";
-        subtitles.set(currInd, text);
-        timing.set(currInd, time);
+        subtitles.set(ind, text);
+        timing.set(ind, time);
     }
 
-    private void removeEmptySubtitle(int i){
-        if (subtitles.get(i).isEmpty()){
+    protected void insertSubtitle(String sub, String stime, String etime, int ind){
+        createSubtitle(ind);
+        saveSubtitle(sub,stime,etime,ind);
+    }
+
+    private void removeEmptySubtitle(int i) {
+        if (subtitles.get(i).isEmpty()) {
             subtitles.remove(i);
             timing.remove(i);
         }
     }
 
+    public int getCurrInd(){
+        return currInd;
+    }
+
     @Override
     public void actionPerformed(ActionEvent actionEvent) {
-        String a= actionEvent.getActionCommand();
-        long millis=0;
-        String time="";
+        String a = actionEvent.getActionCommand();
+        long millis = 0;
+        String time = "";
 
         switch (a) {
+            case "div":
+                DivideSubtitleFrame d=new DivideSubtitleFrame(this.getWidth(),this.getHeight(),subtitle.getText(),
+                        startTime.getText(),endTime.getText(),this);
+                d.setVisible(true);
+                break;
             case "save":
-                saveSubtitle();
+                saveSubtitle(subtitle.getText(),startTime.getText(),endTime.getText(),currInd);
                 nextSubtitle.doClick();
                 break;
             case "next":
@@ -297,7 +319,7 @@ public class AdvanecedView extends JFrame implements ActionListener, WindowListe
                 if (currInd >= subtitles.size()) {
                     end = JOptionPane.showConfirmDialog(null, "The end of the list reached! Add new subtitle?"
                             , "", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
-                    createSubtitle();
+                    createSubtitle(currInd);
                 }
                 break;
             case "prev":
@@ -306,18 +328,14 @@ public class AdvanecedView extends JFrame implements ActionListener, WindowListe
                     JOptionPane.showConfirmDialog(null, "No more previous subtitles to load!"
                             , "", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
                     currInd = 0;
-                    hasNextSubtitle=false;
+                    hasNextSubtitle = false;
                 }
-                hasNextSubtitle=true;
+                hasNextSubtitle = true;
                 break;
             case "start":
             case "end":
-                try {
-                    time = ClassicPlayerUse.mpc.getVariables().get("position");
-                    time = ClassicPlayerUse.convertString(time);
-                }catch (IOException e) {
-                    e.printStackTrace();
-                }
+                time = ClassicPlayerUse.captureTime();
+                time = ClassicPlayerUse.formatTime(time);
                 break;
             case "s+10":
             case "s+100":
@@ -325,7 +343,7 @@ public class AdvanecedView extends JFrame implements ActionListener, WindowListe
             case "s-10":
             case "s-100":
             case "s-1000":
-                millis=ClassicPlayerUse.allToMillis(startTime.getText());
+                millis = ClassicPlayerUse.allToMillis(startTime.getText());
                 break;
             case "e+10":
             case "e+100":
@@ -333,12 +351,12 @@ public class AdvanecedView extends JFrame implements ActionListener, WindowListe
             case "e-10":
             case "e-100":
             case "e-1000":
-                millis=ClassicPlayerUse.allToMillis(endTime.getText());
+                millis = ClassicPlayerUse.allToMillis(endTime.getText());
                 break;
             default:
                 break;
         }
-        switch (a){
+        switch (a) {
             case "next":
             case "prev":
                 loadSubtitle();
@@ -355,8 +373,8 @@ public class AdvanecedView extends JFrame implements ActionListener, WindowListe
             case "s-10":
             case "s-100":
             case "s-1000":
-                millis+=Integer.parseInt(a.substring(1));
-                startTime.setText(ClassicPlayerUse.convertString(millis));
+                millis += Integer.parseInt(a.substring(1));
+                startTime.setText(ClassicPlayerUse.formatTime(millis));
                 break;
             case "e+10":
             case "e+100":
@@ -364,8 +382,8 @@ public class AdvanecedView extends JFrame implements ActionListener, WindowListe
             case "e-10":
             case "e-100":
             case "e-1000":
-                millis+=Integer.parseInt(a.substring(1));
-                endTime.setText(ClassicPlayerUse.convertString(millis));
+                millis += Integer.parseInt(a.substring(1));
+                endTime.setText(ClassicPlayerUse.formatTime(millis));
                 break;
             default:
                 break;
@@ -411,14 +429,16 @@ public class AdvanecedView extends JFrame implements ActionListener, WindowListe
     public void insertUpdate(DocumentEvent documentEvent) {
         nextSubtitle.setEnabled(true);
         saveChanges.setEnabled(true);
+        divideSubtitle.setEnabled(true);
     }
 
     @Override
     public void removeUpdate(DocumentEvent documentEvent) {
-        if (documentEvent.getDocument().getLength()==0) {
+        if (documentEvent.getDocument().getLength() == 0) {
             if (!hasNextSubtitle)
                 nextSubtitle.setEnabled(false);
             saveChanges.setEnabled(false);
+            divideSubtitle.setEnabled(false);
         }
     }
 

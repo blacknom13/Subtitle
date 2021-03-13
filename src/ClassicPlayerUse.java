@@ -1,5 +1,8 @@
 
 import com.eeeeeric.mpc.hc.api.MediaPlayerClassicHomeCinema;
+import com.eeeeeric.mpc.hc.api.WMCommand;
+
+import java.io.IOException;
 
 public class ClassicPlayerUse{
 
@@ -9,7 +12,7 @@ public class ClassicPlayerUse{
         mpc=new MediaPlayerClassicHomeCinema("127.0.0.1",port);
     }
 
-    public static String convertString(String time){
+    public static String formatTime(String time){
         long total=Long.parseLong(time);
         String output="";
         String temp;
@@ -24,7 +27,7 @@ public class ClassicPlayerUse{
         return output;
     }
 
-    public static String convertString(long time){
+    public static String formatTime(long time){
         long total=time;
         String output="";
         String temp;
@@ -47,5 +50,22 @@ public class ClassicPlayerUse{
         total=total*60+Long.parseLong(nums[2]);
         total=total*1000+Long.parseLong(nums[3]);
         return total;
+    }
+
+    public static String captureTime(){
+        try {
+            return (mpc.getVariables().get("position"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return "";
+    }
+
+    public static void seekToTime(String time){
+        try {
+            mpc.execute(WMCommand.SEEK,new MediaPlayerClassicHomeCinema.KeyValuePair("postion",time));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
