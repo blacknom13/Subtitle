@@ -19,7 +19,7 @@ public class AdvanecedView extends JFrame implements ActionListener, WindowListe
     int end;
     boolean hasNextSubtitle;
     ArrayList<String> subtitles;
-    ArrayList<String> timing;
+    protected ArrayList<String> timing;
 
     AdvanecedView(ArrayList<String> subtitles, ArrayList<String> timing) {
         super();
@@ -274,8 +274,34 @@ public class AdvanecedView extends JFrame implements ActionListener, WindowListe
         if (sub.isEmpty()) {
             removeEmptySubtitle(ind);
         }
-        if (timeFormat.matcher(stime).matches() && timeFormat.matcher(etime).matches())
-            time = stime + " --> " + etime;
+        if (timeFormat.matcher(stime).matches() && timeFormat.matcher(etime).matches()) {
+            String msg="";
+            boolean showMsg=false;
+            int retVal=JOptionPane.YES_OPTION;
+            if (ind - 1 >= 0) {
+                String prevStartTime= timing.get(ind-1);
+                if(stime.compareTo(prevStartTime.substring(prevStartTime.indexOf(" ")))==-1){
+                    msg="The starting time of this subtitle overlaps with the previous one. Save anyway?";
+                }
+                showMsg=true;
+            }
+            if (ind +1<timing.size()){
+                String nextStartTime= timing.get(ind+1);
+                if(stime.compareTo(nextStartTime.substring(nextStartTime.lastIndexOf(" ")))==1){
+                    msg="The ending time of this subtitle overlaps with the next one. Save anyway?";
+                }
+                showMsg=true;
+            }
+            if (showMsg) {
+                retVal=JOptionPane.showConfirmDialog(null, msg, "Time overlap",
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.WARNING_MESSAGE);
+            }
+            if (retVal==JOptionPane.YES_OPTION)
+                time = stime + " --> " + etime;
+            else
+                return;
+        }
         else
             time = "";
         subtitles.set(ind, text);
