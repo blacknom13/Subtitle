@@ -16,8 +16,6 @@ public class AdvanecedView extends JFrame implements ActionListener, WindowListe
     final Pattern timeFormat = Pattern.compile("(([01][0-9])|([2][0-3]))(:[0-5][0-9]){2},[0-9]{3}");
 
     int currInd;
-    int end;
-    boolean hasNextSubtitle;
     ArrayList<String> subtitles;
     protected ArrayList<String> timing;
 
@@ -39,6 +37,7 @@ public class AdvanecedView extends JFrame implements ActionListener, WindowListe
         subtitle = new JTextArea();
         subtitle.setLineWrap(true);
         subtitle.getDocument().addDocumentListener(this);
+        subtitle.getDocument().putProperty("parent","sub");
         con.fill = GridBagConstraints.HORIZONTAL;
         con.gridwidth = 7;
         con.ipady = 40;
@@ -61,6 +60,8 @@ public class AdvanecedView extends JFrame implements ActionListener, WindowListe
         this.add(new JLabel("End time"), con);
 
         startTime = new JTextField();
+        startTime.getDocument().addDocumentListener(this);
+        startTime.getDocument().putProperty("parent","start");
         con.fill = GridBagConstraints.HORIZONTAL;
         con.weightx = 0.4;
         con.gridx = 0;
@@ -68,6 +69,8 @@ public class AdvanecedView extends JFrame implements ActionListener, WindowListe
         this.add(startTime, con);
 
         endTime = new JTextField();
+        endTime.getDocument().addDocumentListener(this);
+        endTime.getDocument().putProperty("parent","end");
         con.fill = GridBagConstraints.HORIZONTAL;
         con.weightx = 0.4;
         con.gridx = 4;
@@ -244,6 +247,10 @@ public class AdvanecedView extends JFrame implements ActionListener, WindowListe
         return -1;
     }
 
+    private boolean hasNextSubtitle(){
+        return (currInd<subtitles.size()-1);
+    }
+
     private void loadSubtitle() {
         subtitle.setText(subtitles.get(currInd));
         String[] time;
@@ -278,20 +285,24 @@ public class AdvanecedView extends JFrame implements ActionListener, WindowListe
             String msg="";
             boolean showMsg=false;
             int retVal=JOptionPane.YES_OPTION;
-            if (ind - 1 >= 0) {
-                String prevStartTime= timing.get(ind-1);
-                if(stime.compareTo(prevStartTime.substring(prevStartTime.indexOf(" ")))==-1){
-                    msg="The starting time of this subtitle overlaps with the previous one. Save anyway?";
-                }
-                showMsg=true;
-            }
-            if (ind +1<timing.size()){
-                String nextStartTime= timing.get(ind+1);
-                if(stime.compareTo(nextStartTime.substring(nextStartTime.lastIndexOf(" ")))==1){
-                    msg="The ending time of this subtitle overlaps with the next one. Save anyway?";
-                }
-                showMsg=true;
-            }
+//            if (ind - 1 >= 0) { // FIXME: 16-Mar-21
+//                String prevEndTime= timing.get(ind-1);
+//                System.out.println(stime+" "+ prevEndTime.substring(prevEndTime.lastIndexOf(' ')+1));
+//                if(!prevEndTime.isEmpty() &&
+//                        stime.compareTo(prevEndTime.substring(prevEndTime.lastIndexOf(' ')+1))<0){
+//                    msg="The starting time of this subtitle overlaps with the previous one. Save anyway?";
+//                    showMsg=true;
+//                }
+//            }
+//            if (ind +1<timing.size()){ // FIXME: 16-Mar-21
+//                String nextStartTime= timing.get(ind+1);
+//                System.out.println(etime+" "+(!nextStartTime.isEmpty()?nextStartTime.substring(0,nextStartTime.indexOf(' ')):" "));
+//                if(!nextStartTime.isEmpty() &&
+//                        etime.compareTo(nextStartTime.substring(0,nextStartTime.indexOf(' ')))>0){
+//                    msg="The ending time of this subtitle overlaps with the next one. Save anyway?";
+//                    showMsg=true;
+//                }
+//            }
             if (showMsg) {
                 retVal=JOptionPane.showConfirmDialog(null, msg, "Time overlap",
                         JOptionPane.YES_NO_OPTION,
@@ -343,8 +354,8 @@ public class AdvanecedView extends JFrame implements ActionListener, WindowListe
             case "next":
                 currInd++;
                 if (currInd >= subtitles.size()) {
-                    end = JOptionPane.showConfirmDialog(null, "The end of the list reached! Add new subtitle?"
-                            , "", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
+//                    end = JOptionPane.showConfirmDialog(null, "The end of the list reached! Add new subtitle?"
+//                            , "", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
                     createSubtitle(currInd);
                 }
                 break;
@@ -354,9 +365,7 @@ public class AdvanecedView extends JFrame implements ActionListener, WindowListe
                     JOptionPane.showConfirmDialog(null, "No more previous subtitles to load!"
                             , "", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
                     currInd = 0;
-                    hasNextSubtitle = false;
                 }
-                hasNextSubtitle = true;
                 break;
             case "start":
             case "end":
@@ -443,7 +452,7 @@ public class AdvanecedView extends JFrame implements ActionListener, WindowListe
 
     @Override
     public void windowActivated(WindowEvent windowEvent) {
-
+        manageButtons();
     }
 
     @Override
@@ -453,22 +462,58 @@ public class AdvanecedView extends JFrame implements ActionListener, WindowListe
 
     @Override
     public void insertUpdate(DocumentEvent documentEvent) {
-        nextSubtitle.setEnabled(true);
-        saveChanges.setEnabled(true);
-        divideSubtitle.setEnabled(true);
+        manageButtons();
+//        if (hasNextSubtitle()) {
+//            nextSubtitle.setText("Next subtitle");
+//        }
+//        nextSubtitle.setEnabled(true);
+//        if (!subtitle.getText().isEmpty())
+//            saveChanges.setEnabled(true);
+//            if (timeFormat.matcher(startTime.getText()).matches() && timeFormat.matcher(endTime.getText()).matches()){
+//                divideSubtitle.setEnabled(true);
+//            }
     }
 
     @Override
     public void removeUpdate(DocumentEvent documentEvent) {
-        if (documentEvent.getDocument().getLength() == 0) {
-            if (!hasNextSubtitle)
-                nextSubtitle.setEnabled(false);
-            saveChanges.setEnabled(false);
-            divideSubtitle.setEnabled(false);
-        }
+        manageButtons();
     }
 
     @Override
     public void changedUpdate(DocumentEvent documentEvent) {
+        manageButtons();
+//        if (!hasNextSubtitle())
+//            nextSubtitle.setText("Create subtitle");
+//        if (subtitle.getText().isEmpty() || !timeFormat.matcher(startTime.getText()).matches() ||
+//                !timeFormat.matcher(endTime.getText()).matches())
+//            divideSubtitle.setEnabled(false);
+//        if (subtitle.getText().isEmpty()) {
+//            saveChanges.setEnabled(false);
+//            if (nextSubtitle.getText().equals("Create subtitle"))
+//                nextSubtitle.setEnabled(false);
+//        }
+    }
+
+    private void manageButtons(){
+        if (!hasNextSubtitle())
+            nextSubtitle.setText("Create subtitle");
+        else
+            nextSubtitle.setText("Next Subtitle");
+        if (subtitle.getText().isEmpty() || !timeFormat.matcher(startTime.getText()).matches() ||
+                !timeFormat.matcher(endTime.getText()).matches())
+            divideSubtitle.setEnabled(false);
+        else{
+            divideSubtitle.setEnabled(true);
+        }
+        if (subtitle.getText().isEmpty()) {
+            saveChanges.setEnabled(false);
+            if (nextSubtitle.getText().equals("Create subtitle"))
+                nextSubtitle.setEnabled(false);
+            else
+                nextSubtitle.setEnabled(true);
+        }else{
+            saveChanges.setEnabled(true);
+            nextSubtitle.setEnabled(true);
+        }
     }
 }

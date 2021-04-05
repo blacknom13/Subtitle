@@ -63,7 +63,7 @@ public class ClassicPlayerUse{
 
     public static void seekToTime(String time){
         try {
-            mpc.execute(WMCommand.SEEK,new MediaPlayerClassicHomeCinema.KeyValuePair("postion",time));
+            mpc.execute(WMCommand.SEEK,new MediaPlayerClassicHomeCinema.KeyValuePair("position",time));
         } catch (IOException e) {
             e.printStackTrace();
         }
